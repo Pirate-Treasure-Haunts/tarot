@@ -1,28 +1,59 @@
-import json
+import sys
 import os
+import json
 import random
 
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)  # PyInstaller path
+    return os.path.join(os.path.dirname(__file__), relative_path)
+
 def load_deck():
-    path = os.path.join(os.path.dirname(__file__), "deck_data.json")
+    path = resource_path("deck_data.json")
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 def get_full_deck():
-    deck = load_deck()
     full = []
-    for tier, cards in deck.items():
-        for card in cards:
-            if not isinstance(card, dict):
-                continue
-            full.append({
-                "tier": tier,
-                "name": card["name"],
-                "short": card.get("short", ""),
-                "long": card.get("long", ""),
-                "reversed_short": card.get("reversed_short", None),
-                "reversed_long": card.get("reversed_long", None)
-            })
+    for tier, cards_or_suits in deck.items():
+        if isinstance(cards_or_suits, list):
+            # Direct list of cards
+            for card in cards_or_suits:
+                full.append({
+                    "tier": tier,
+                    "name": card["name"],
+                    "short": card.get("short", ""),
+                    "long": card.get("long", ""),
+                    "reversed_short": card.get("reversed_short", ""),
+                    "reversed_long": card.get("reversed_long", "")
+                })
+        elif isinstance(cards_or_suits, dict):
+            # Nested suits or subcategories
+            for suit_name, cards in cards_or_suits.items():
+                for card in cards:
+                    full.append({
+                        "tier": tier,
+                        "name": card["name"],
+                        "short": card.get("short", ""),
+                        "long": card.get("long", ""),
+                        "reversed_short": card.get("reversed_short", ""),
+                        "reversed_long": card.get("reversed_long", "")
+                    })
     return full
+
+def count_cards(entry):
+    if isinstance(entry, list):
+        return len(entry)
+    elif isinstance(entry, dict):
+        return sum(len(v) for v in entry.values())
+    return 0
+
+deck = load_deck()
+print("Deck composition:")
+print({tier: count_cards(cards) for tier, cards in deck.items()})
+print("Total:", sum(count_cards(cards) for cards in deck.values()))
+print("Arcana included:", list(deck.keys()))
 
 def draw_cards(n, already_drawn):
     full_deck = get_full_deck()
