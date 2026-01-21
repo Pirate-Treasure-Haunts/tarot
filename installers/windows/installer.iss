@@ -31,12 +31,31 @@ InfoBeforeFile={#RepoRoot}\README_DIST.txt
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
+#define MyAppName "Alchemical Tarot of the Human Condition"
+#define MyAppExeName "a-tarot-for-the-modern-age.exe"
+#define MyAppVersion GetEnv("APP_VERSION")
+
+[Setup]
+AppName={#MyAppName}
+AppVersion={#MyAppVersion}
+DefaultDirName={pf}\{#MyAppName}
+DefaultGroupName={#MyAppName}
+DisableProgramGroupPage=yes
+OutputDir=out
+OutputBaseFilename=TarotSetup-Windows-{#MyAppVersion}
+Compression=lzma2
+SolidCompression=yes
+
+; Show these during install (now read from payload folder)
+LicenseFile=payload\EULA.txt
+InfoBeforeFile=payload\README_DIST.txt
+
 [Files]
-Source: "{#RepoRoot}\dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#RepoRoot}\deck_data.json"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#RepoRoot}\LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#RepoRoot}\EULA.txt"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#RepoRoot}\README_DIST.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "payload\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "payload\deck_data.json"; DestDir: "{app}"; Flags: ignoreversion
+Source: "payload\LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "payload\EULA.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "payload\README_DIST.txt"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

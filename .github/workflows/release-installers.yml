@@ -66,28 +66,41 @@ jobs:
             --add-data "deck_data.json:."
 
       # ---------------- WINDOWS INSTALLER (Inno Setup) ----------------
-      - name: Install Inno Setup (Windows)
+      - name: Build executable (Windows, PyInstaller)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          choco install innosetup -y
+          python -m pip install --upgrade pip
+          python -m pip install pyinstaller
 
-      - name: Build Windows installer
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path out | Out-Null
-          # Inno uses repo-root relative paths in the .iss file
-          $env:APP_VERSION = "${{ env.APP_VERSION }}"
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "installers\windows\installer.iss"
+          # Clean any previous outputs
+          if (Test-Path build) { Remove-Item -Recurse -Force build }
+          if (Test-Path dist) { Remove-Item -Recurse -Force dist }
+          if (Test-Path installers\windows\payload) { Remove-Item -Recurse -Force installers\windows\payload }
 
-      - name: Upload Windows installer artifact
-        if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v4
-        with:
-          name: TarotSetup-Windows-${{ env.APP_VERSION }}
-          path: out/*.exe
-          if-no-files-found: error
+          # Build .exe
+          python -m PyInstaller pull_cards.py `
+            --name "a-tarot-for-the-modern-age" `
+            --onefile `
+            --clean `
+            --noconfirm `
+            --add-data "deck_data.json;."
+
+          # Copy exe + docs into a *known* payload folder for Inno
+          New-Item -ItemType Directory -Force -Path installers\windows\payload | Out-Null
+
+          Copy-Item "dist\a-tarot-for-the-modern-age.exe" "installers\windows\payload\" -Force
+          Copy-Item "deck_data.json" "installers\windows\payload\" -Force
+          Copy-Item "LICENSE.txt" "installers\windows\payload\" -Force
+          Copy-Item "EULA.txt" "installers\windows\payload\" -Force
+          Copy-Item "README_DIST.txt" "installers\windows\payload\" -Force
+
+          # Prove payload exists (and fail loudly if not)
+          Write-Host "== payload contents =="
+          Get-ChildItem installers\windows\payload -Force
+          if (!(Test-Path "installers\windows\payload\a-tarot-for-the-modern-age.exe")) {
+            Write-Error "Exe missing from installers\windows\payload\"
+          }
 
       # ---------------- macOS PKG INSTALLER ----------------
       - name: Build macOS pkg
