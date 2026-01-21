@@ -1,8 +1,12 @@
-#define MyAppName "A Tarot For The Modern Age"
-#define MyAppExeName "a-tarot-for-the-modern-age.exe"
-#define MyAppPublisher "RYOModular"
-#define MyAppURL "https://example.com"
+#define MyAppName "Alchemical Tarot of the Human Condition"
+#define MyAppExeName "Alchemical-Tarot-of-the-Human-Condition-win71011.exe"
+#define MyAppPublisher "whispr.dev"
+#define MyAppURL "https://whispr.dev/tarot/"
 #define MyAppVersion GetEnv("APP_VERSION")
+
+; Inno resolves relative paths from the .iss file's folder.
+; This points back to repo root.
+#define RepoRoot "..\.."
 
 [Setup]
 AppId={{A0D7C3E4-7C1A-4B4A-BD9C-5F1A2D0F9A11}
@@ -20,19 +24,19 @@ OutputBaseFilename=TarotSetup-Windows-{#MyAppVersion}
 Compression=lzma2
 SolidCompression=yes
 
-; These show during install:
-LicenseFile=LICENSE.txt
-InfoBeforeFile=README_DIST.txt
+; Show these during install:
+LicenseFile={#RepoRoot}\EULA.txt
+InfoBeforeFile={#RepoRoot}\README_DIST.txt
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: "dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "deck_data.json"; DestDir: "{app}"; Flags: ignoreversion
-Source: "LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
-Source: "EULA.txt"; DestDir: "{app}"; Flags: ignoreversion
-Source: "README_DIST.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#RepoRoot}\dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#RepoRoot}\deck_data.json"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#RepoRoot}\LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#RepoRoot}\EULA.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#RepoRoot}\README_DIST.txt"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

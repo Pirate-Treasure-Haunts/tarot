@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <installer-gui-script minSpecVersion="1">
-  <title>A Tarot For The Modern Age</title>
+  <title>Alchemical Tarot of the Human Condition</title>
 
   <license file="EULA.txt"/>
 
@@ -13,9 +13,9 @@
   </choices-outline>
 
   <choice id="default"/>
-  <choice id="app" visible="false" title="A Tarot For The Modern Age">
-    <pkg-ref id="com.ryomodular.tarot.pkg"/>
+  <choice id="app" visible="false" title="Alchemical Tarot of the Human Condition">
+    <pkg-ref id="dev.whispr.tarot.pkg"/>
   </choice>
 
-  <pkg-ref id="com.ryomodular.tarot.pkg">tarot.pkg</pkg-ref>
+  <pkg-ref id="dev.whispr.tarot.pkg">tarot.pkg</pkg-ref>
 </installer-gui-script>
