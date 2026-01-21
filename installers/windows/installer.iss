@@ -28,7 +28,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
 ; App files copied into Program Files
-Source: "{#Here}\payload\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion=
+Source: "{#Here}\payload\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 
 Source: "payload\README_DIST.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "payload\LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
