@@ -89,7 +89,7 @@ jobs:
           # Copy exe + docs into a *known* payload folder for Inno
           New-Item -ItemType Directory -Force -Path installers\windows\payload | Out-Null
 
-         - name: Upload Windows installer artifact
+          - name: Upload Windows installer artifact
            if: runner.os == 'Windows'
             uses: actions/upload-artifact@v4
                 with:
