@@ -1,0 +1,93 @@
+name: Build executables (Win / Linux / macOS)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      # ---------- Linux / macOS ----------
+      - name: Install deps (Linux/macOS)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+          pip install pyinstaller
+
+      - name: Build (Linux/macOS)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          pyinstaller pull_cards.py \
+            --name a-tarot-for-the-modern-age \
+            --onefile \
+            --clean \
+            --noconfirm \
+            --add-data "deck_data.json:."
+
+      # ---------- Windows ----------
+      - name: Install deps (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          if (Test-Path "requirements.txt") {
+            pip install -r requirements.txt
+          }
+          pip install pyinstaller
+
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          pyinstaller pull_cards.py `
+            --name a-tarot-for-the-modern-age `
+            --onefile `
+            --clean `
+            --noconfirm `
+            --add-data "deck_data.json;."
+
+      # ---------- Package + upload ----------
+      - name: Prepare artifact (Linux/macOS)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          mkdir -p out
+          cp "dist/a-tarot-for-the-modern-age" "out/a-tarot-for-the-modern-age-${{ runner.os }}"
+
+      - name: Prepare artifact (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path out | Out-Null
+          Copy-Item "dist\a-tarot-for-the-modern-age.exe" "out\a-tarot-for-the-modern-age-${{ runner.os }}.exe"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: a-tarot-for-the-modern-age-${{ runner.os }}
+          path: out/*
+          if-no-files-found: error
