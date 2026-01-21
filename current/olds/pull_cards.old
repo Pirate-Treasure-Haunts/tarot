@@ -1,0 +1,54 @@
+import random
+import json
+import os
+
+# Load all card data
+CARD_DATA_PATH = os.path.join(os.path.dirname(__file__), "deck_data.json")
+
+with open(CARD_DATA_PATH, "r", encoding="utf-8") as f:
+    deck = json.load(f)
+
+def draw_cards(n):
+    all_cards = []
+    for tier, cards in deck.items():
+        for card in cards:
+            all_cards.append({
+                "tier": tier,
+                "name": card["name"],
+                "short": card.get("short", ""),
+                "long": card.get("long", "")
+            })
+    return random.sample(all_cards, n)
+
+def print_card(card, detail="short"):
+    print(f"\n🎴 {card['tier'].upper()} — {card['name']}")
+    print("-" * (len(card['tier']) + len(card['name']) + 6))
+    print(card[detail])
+    print()
+
+def main():
+    print("🔮 Welcome to the Alchemical Tarot of the Human Condition 🔮\n")
+    while True:
+        try:
+            n = int(input("How many cards would you like to draw? (1–10): "))
+            if not 1 <= n <= 10:
+                raise ValueError()
+        except ValueError:
+            print("Please enter a valid number between 1 and 10.")
+            continue
+
+        detail_level = input("Show [s]hort or [l]ong descriptions? (s/l): ").strip().lower()
+        if detail_level not in ["s", "l"]:
+            detail_level = "s"
+
+        drawn = draw_cards(n)
+        for card in drawn:
+            print_card(card, detail="short" if detail_level == "s" else "long")
+
+        again = input("Draw again? (y/n): ").strip().lower()
+        if again != "y":
+            print("\nFarewell, seeker. May the archetypes guide you well.")
+            break
+
+if __name__ == "__main__":
+    main()
