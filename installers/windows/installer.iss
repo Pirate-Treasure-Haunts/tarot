@@ -1,61 +1,37 @@
+#define Here ExtractFileDir(__FILE__)
 #define MyAppName "Alchemical Tarot of the Human Condition"
-#define MyAppExeName "Alchemical-Tarot-of-the-Human-Condition-win71011.exe"
-#define MyAppPublisher "whispr.dev"
-#define MyAppURL "https://whispr.dev/tarot/"
+#define MyAppExeName "installers/windows/payload/a-tarot-for-the-modern-age.exe"
+#define MyAppPublisher "whisprer"
 #define MyAppVersion GetEnv("APP_VERSION")
-
-; Inno resolves relative paths from the .iss file's folder.
-; This points back to repo root.
-#define RepoRoot "..\.."
 
 [Setup]
 AppId={{A0D7C3E4-7C1A-4B4A-BD9C-5F1A2D0F9A11}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-AppPublisherURL={#MyAppURL}
-AppSupportURL={#MyAppURL}
-AppUpdatesURL={#MyAppURL}
 DefaultDirName={pf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
+
+; Output is relative to THIS .iss folder => installers/windows/out/
 OutputDir=out
-OutputBaseFilename=TarotSetup-Windows-{#MyAppVersion}
+OutputBaseFilename=Alchemical-Tarot-Setup-{#MyAppVersion}
 Compression=lzma2
 SolidCompression=yes
 
-; Show these during install:
-LicenseFile={#RepoRoot}\EULA.txt
-InfoBeforeFile={#RepoRoot}\README_DIST.txt
+; Installer UI text screens
+LicenseFile=payload\EULA.txt
+InfoBeforeFile=payload\README_DIST.txt
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
-#define MyAppName "Alchemical Tarot of the Human Condition"
-#define MyAppExeName "a-tarot-for-the-modern-age.exe"
-#define MyAppVersion GetEnv("APP_VERSION")
-
-[Setup]
-AppName={#MyAppName}
-AppVersion={#MyAppVersion}
-DefaultDirName={pf}\{#MyAppName}
-DefaultGroupName={#MyAppName}
-DisableProgramGroupPage=yes
-OutputDir=out
-OutputBaseFilename=TarotSetup-Windows-{#MyAppVersion}
-Compression=lzma2
-SolidCompression=yes
-
-; Show these during install (now read from payload folder)
-LicenseFile=payload\EULA.txt
-InfoBeforeFile=payload\README_DIST.txt
-
 [Files]
-Source: "payload\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "payload\a-tarot-for-the-modern-age.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "payload\deck_data.json"; DestDir: "{app}"; Flags: ignoreversion
+Source: "payload\README_DIST.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "payload\LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "payload\EULA.txt"; DestDir: "{app}"; Flags: ignoreversion
-Source: "payload\README_DIST.txt"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

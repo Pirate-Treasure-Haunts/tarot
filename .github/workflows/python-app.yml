@@ -75,47 +75,6 @@ jobs:
             --noconfirm `
             --add-data "deck_data.json;."
 
-            - name: Build executable and stage payload (Windows)
-              if: runner.os == 'Windows'
-              shell: pwsh
-              run: |
-                python -m pip install --upgrade pip
-                python -m pip install pyinstaller
-
-                if (Test-Path build) { Remove-Item -Recurse -Force build }
-                if (Test-Path dist) { Remove-Item -Recurse -Force dist }
-                if (Test-Path installers\windows\payload) { Remove-Item -Recurse -Force installers\windows\payload }
-
-                # Build exe (THIS determines the filename)
-                python -m PyInstaller pull_cards.py `
-                  --name "a-tarot-for-the-modern-age" `
-                  --onefile `
-                  --clean `
-                  --noconfirm `
-                  --add-data "deck_data.json;."
-
-                Write-Host "== dist listing =="
-                Get-ChildItem dist -Force
-
-                if (!(Test-Path "dist\a-tarot-for-the-modern-age.exe")) {
-                  Write-Error "PyInstaller did not produce dist\a-tarot-for-the-modern-age.exe"
-                }
-
-                New-Item -ItemType Directory -Force -Path installers\windows\payload | Out-Null
-
-                Copy-Item "dist\a-tarot-for-the-modern-age.exe" "installers\windows\payload\" -Force
-                Copy-Item "deck_data.json" "installers\windows\payload\" -Force
-                Copy-Item "README_DIST.txt" "installers\windows\payload\" -Force
-                Copy-Item "LICENSE.txt" "installers\windows\payload\" -Force
-                Copy-Item "EULA.txt" "installers\windows\payload\" -Force
-
-                Write-Host "== payload listing =="
-                Get-ChildItem installers\windows\payload -Force
-
-                if (!(Test-Path "installers\windows\payload\a-tarot-for-the-modern-age.exe")) {
-                  Write-Error "EXE missing from payload after copy"
-                }
-
           # Stage payload for Inno Setup
           New-Item -ItemType Directory -Force -Path installers\windows\payload | Out-Null
 
