@@ -89,6 +89,14 @@ jobs:
           # Copy exe + docs into a *known* payload folder for Inno
           New-Item -ItemType Directory -Force -Path installers\windows\payload | Out-Null
 
+         - name: Upload Windows installer artifact
+           if: runner.os == 'Windows'
+            uses: actions/upload-artifact@v4
+                with:
+              name: TarotSetup-Windows-${{ env.APP_VERSION }}
+              path: installers/windows/out/*.exe
+              if-no-files-found: error
+
           Copy-Item "dist\a-tarot-for-the-modern-age.exe" "installers\windows\payload\" -Force
           Copy-Item "deck_data.json" "installers\windows\payload\" -Force
           Copy-Item "LICENSE.txt" "installers\windows\payload\" -Force
