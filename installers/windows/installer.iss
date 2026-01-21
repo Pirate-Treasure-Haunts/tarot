@@ -35,15 +35,6 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 #define MyAppExeName "a-tarot-for-the-modern-age.exe"
 #define MyAppVersion GetEnv("APP_VERSION")
 
-[Setup]
-DefaultDirName={pf}\{#MyAppName}
-DefaultGroupName={#MyAppName}
-DisableProgramGroupPage=yes
-OutputDir=out
-OutputBaseFilename=TarotSetup-Windows-{#MyAppVersion}
-Compression=lzma2
-SolidCompression=yes
-
 ; Show these during install (now read from payload folder)
 LicenseFile=payload\EULA.txt
 InfoBeforeFile=payload\README_DIST.txt
