@@ -35,10 +35,6 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 #define MyAppExeName "a-tarot-for-the-modern-age.exe"
 #define MyAppVersion GetEnv("APP_VERSION")
 
-; Show these during install (now read from payload folder)
-LicenseFile=payload\EULA.txt
-InfoBeforeFile=payload\README_DIST.txt
-
 [Files]
 Source: "payload\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "payload\deck_data.json"; DestDir: "{app}"; Flags: ignoreversion
