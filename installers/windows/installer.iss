@@ -36,8 +36,6 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 #define MyAppVersion GetEnv("APP_VERSION")
 
 [Setup]
-AppName={#MyAppName}
-AppVersion={#MyAppVersion}
 DefaultDirName={pf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
