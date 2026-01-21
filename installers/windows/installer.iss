@@ -1,5 +1,6 @@
+#define Here ExtractFileDir(__FILE__)
 #define MyAppName "Alchemical Tarot of the Human Condition"
-#define MyAppExeName "bob.exe"
+#define MyAppExeName "installers/windows/payload/a-tarot-for-the-modern-age.exe"
 #define MyAppPublisher "whisprer"
 #define MyAppVersion GetEnv("APP_VERSION")
 
@@ -27,10 +28,8 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
 ; App files copied into Program Files
-Source: "payload\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "payload\deck_data.json"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#Here}\payload\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion=
 
-; Docs copied into Program Files too
 Source: "payload\README_DIST.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "payload\LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "payload\EULA.txt"; DestDir: "{app}"; Flags: ignoreversion
