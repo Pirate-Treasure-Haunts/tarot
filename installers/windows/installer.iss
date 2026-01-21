@@ -27,9 +27,8 @@ InfoBeforeFile=payload\README_DIST.txt
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-; App files copied into Program Files
-Source: "{#Here}\payload\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-
+Source: "payload\a-tarot-for-the-modern-age.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "payload\deck_data.json"; DestDir: "{app}"; Flags: ignoreversion
 Source: "payload\README_DIST.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "payload\LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "payload\EULA.txt"; DestDir: "{app}"; Flags: ignoreversion
