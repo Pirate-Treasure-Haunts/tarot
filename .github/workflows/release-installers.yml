@@ -1,12 +1,11 @@
-name: Build installers (Win EXE / macOS PKG / Linux DEB+RPM)
+name: Build Installers (Windows / macOS / Linux)
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version string to embed (e.g. 1.0.0). If blank, uses short SHA."
-        required: false
-        default: ""
+        description: "Release version (e.g. 4.0.1)"
+        required: true
 
 permissions:
   contents: read
@@ -17,154 +16,215 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
+
     runs-on: ${{ matrix.os }}
 
     env:
-      APP_NAME: a-tarot-for-the-modern-age
+      APP_INTERNAL_NAME: Alchemical-Tarot-of-the-Human-Condition
+      APP_VERSION: ${{ github.event.inputs.version }}
 
     steps:
-      - name: Checkout
+      # ------------------------------------------------------------
+      # Checkout
+      # ------------------------------------------------------------
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set version
+      # ------------------------------------------------------------
+      # Sanity check required files
+      # ------------------------------------------------------------
+      - name: Verify required files exist
         shell: bash
         run: |
-          if [ -n "${{ github.event.inputs.version }}" ]; then
-            echo "APP_VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
-          else
-            echo "APP_VERSION=0.0.0-${GITHUB_SHA::7}" >> $GITHUB_ENV
-          fi
+          test -f pull_cards.py
+          test -f deck_data.json
+          test -f README_DIST.txt
+          test -f LICENSE.txt
+          test -f EULA.txt
 
-      - name: Ensure distribution docs exist
-        shell: bash
-        run: |
-          test -f LICENSE.txt || (echo "Missing LICENSE.txt at repo root" && exit 1)
-          test -f EULA.txt || (echo "Missing EULA.txt at repo root" && exit 1)
-          test -f README_DIST.txt || (echo "Missing README_DIST.txt at repo root" && exit 1)
-          test -f pull_cards.py || (echo "Missing pull_cards.py at repo root" && exit 1)
-          test -f deck_data.json || (echo "Missing deck_data.json at repo root" && exit 1)
-
+      # ------------------------------------------------------------
+      # Python setup
+      # ------------------------------------------------------------
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install PyInstaller
+      # ============================================================
+      # WINDOWS
+      # ============================================================
+      - name: Build executable and stage payload (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pyinstaller
+
+          # Clean previous outputs
+          if (Test-Path build) { Remove-Item -Recurse -Force build }
+          if (Test-Path dist) { Remove-Item -Recurse -Force dist }
+          if (Test-Path installers\windows\payload) {
+            Remove-Item -Recurse -Force installers\windows\payload
+          }
+
+          # Build exe
+          python -m PyInstaller pull_cards.py `
+            --name "$env:APP_INTERNAL_NAME" `
+            --onefile `
+            --clean `
+            --noconfirm `
+            --add-data "deck_data.json;."
+
+          # Stage payload for Inno Setup
+          New-Item -ItemType Directory -Force -Path installers\windows\payload | Out-Null
+
+          Copy-Item "dist\$env:APP_INTERNAL_NAME.exe" "installers\windows\payload\" -Force
+          Copy-Item "deck_data.json" "installers\windows\payload\" -Force
+          Copy-Item "README_DIST.txt" "installers\windows\payload\" -Force
+          Copy-Item "LICENSE.txt" "installers\windows\payload\" -Force
+          Copy-Item "EULA.txt" "installers\windows\payload\" -Force
+
+          Write-Host "== Windows payload contents =="
+          Get-ChildItem installers\windows\payload -Force
+
+          if (!(Test-Path "installers\windows\payload\$env:APP_INTERNAL_NAME.exe")) {
+            Write-Error "Executable missing from payload"
+          }
+
+      - name: Install Inno Setup (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install innosetup -y
+
+      - name: Build Windows installer (Inno Setup)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installers\windows\installer.iss
+
+      - name: List Windows installer output
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Write-Host "== installers/windows/out =="
+          Get-ChildItem installers\windows\out -Force
+
+      - name: Upload Windows installer
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Alchemical-Tarot-Windows-${{ env.APP_VERSION }}
+          path: installers/windows/out/*.exe
+          if-no-files-found: error
+
+      # ============================================================
+      # macOS
+      # ============================================================
+      - name: Build macOS executable
+        if: runner.os == 'macOS'
         shell: bash
         run: |
           python -m pip install --upgrade pip
           pip install pyinstaller
 
-      - name: Build executable (PyInstaller)
-        shell: bash
-        run: |
           pyinstaller pull_cards.py \
-            --name "${APP_NAME}" \
+            --name "$APP_INTERNAL_NAME" \
             --onefile \
             --clean \
             --noconfirm \
             --add-data "deck_data.json:."
 
-      # ---------------- WINDOWS INSTALLER (Inno Setup) ----------------
-# Build exe + prepare payload (Windows)
-- name: Build executable and stage Inno payload (Windows)
-  if: runner.os == 'Windows'
-  shell: pwsh
-  run: |
-    python -m pip install --upgrade pip
-    python -m pip install pyinstaller
+      - name: Build macOS pkg
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          APP_DIR="pkgroot/Applications/Alchemical Tarot of the Human Condition"
+          mkdir -p "$APP_DIR"
 
-    # Clean any previous outputs
-    if (Test-Path build) { Remove-Item -Recurse -Force build }
-    if (Test-Path dist) { Remove-Item -Recurse -Force dist }
-    if (Test-Path installers\windows\payload) { Remove-Item -Recurse -Force installers\windows\payload }
+          cp "dist/$APP_INTERNAL_NAME" "$APP_DIR/$APP_INTERNAL_NAME"
+          cp deck_data.json README_DIST.txt LICENSE.txt EULA.txt "$APP_DIR/"
 
-    # Build .exe
-    python -m PyInstaller pull_cards.py `
-      --name "a-tarot-for-the-modern-age" `
-      --onefile `
-      --clean `
-      --noconfirm `
-      --add-data "deck_data.json;."
+          pkgbuild \
+            --root pkgroot \
+            --identifier com.whisprer.alchemicaltarot \
+            --version "$APP_VERSION" \
+            --install-location / \
+            tarot.pkg
 
-    # Copy exe + docs into known payload folder for Inno
-    New-Item -ItemType Directory -Force -Path installers\windows\payload | Out-Null
-    Copy-Item "dist\a-tarot-for-the-modern-age.exe" "installers\windows\payload\" -Force
-    Copy-Item "deck_data.json" "installers\windows\payload\" -Force
-    Copy-Item "LICENSE.txt" "installers\windows\payload\" -Force
-    Copy-Item "EULA.txt" "installers\windows\payload\" -Force
-    Copy-Item "README_DIST.txt" "installers\windows\payload\" -Force
+          mkdir -p resources
+          cp EULA.txt resources/EULA.txt
 
-<<<<<<< Updated upstream
-          - name: Upload Windows installer artifact
-           if: runner.os == 'Windows'
-            uses: actions/upload-artifact@v4
-                with:
-              name: TarotSetup-Windows-${{ env.APP_VERSION }}
-              path: installers/windows/out/*.exe
-              if-no-files-found: error
-=======
-    Write-Host "== payload contents =="
-    Get-ChildItem installers\windows\payload -Force
->>>>>>> Stashed changes
+          productbuild \
+            --distribution installers/macos/distribution.xml \
+            --resources resources \
+            --package-path . \
+            "Alchemical-Tarot-macOS-$APP_VERSION.pkg"
 
-    if (!(Test-Path "installers\windows\payload\a-tarot-for-the-modern-age.exe")) {
-      Write-Error "Exe missing from installers\windows\payload\"
-    }
+      - name: Upload macOS installer
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Alchemical-Tarot-macOS-${{ env.APP_VERSION }}
+          path: Alchemical-Tarot-macOS-*.pkg
+          if-no-files-found: error
 
-# Install Inno Setup
-- name: Install Inno Setup (Windows)
-  if: runner.os == 'Windows'
-  shell: pwsh
-  run: |
-    choco install innosetup -y
+      # ============================================================
+      # LINUX
+      # ============================================================
+      - name: Build Linux executable
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
 
-# Compile installer
-- name: Build Windows installer (Inno Setup)
-  if: runner.os == 'Windows'
-  shell: pwsh
-  run: |
-    # This produces installers/windows/out/*.exe (because OutputDir=out in the .iss)
-    & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "installers\windows\installer.iss"
+          pyinstaller pull_cards.py \
+            --name "$APP_INTERNAL_NAME" \
+            --onefile \
+            --clean \
+            --noconfirm \
+            --add-data "deck_data.json:."
 
-# Prove output exists (optional but very helpful)
-- name: List Windows installer output
-  if: runner.os == 'Windows'
-  shell: pwsh
-  run: |
-    Write-Host "== installers/windows/out =="
-    if (Test-Path "installers\windows\out") { Get-ChildItem "installers\windows\out" -Force }
-    else { Write-Error "installers/windows/out does not exist" }
+      - name: Build Linux packages (.deb + .rpm)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ruby ruby-dev build-essential rpm
+          sudo gem install --no-document fpm
 
-# Upload artifact (THIS MUST BE OUTSIDE pwsh run blocks)
-- name: Upload Windows installer artifact
-  if: runner.os == 'Windows'
-  uses: actions/upload-artifact@v4
-  with:
-    name: TarotSetup-Windows-${{ env.APP_VERSION }}
-    path: installers/windows/out/*.exe
-    if-no-files-found: error
+          mkdir -p pkgroot/usr/local/bin
+          mkdir -p pkgroot/usr/share/doc/$APP_INTERNAL_NAME
 
+          cp "dist/$APP_INTERNAL_NAME" "pkgroot/usr/local/bin/$APP_INTERNAL_NAME"
+          cp README_DIST.txt LICENSE.txt EULA.txt \
+             "pkgroot/usr/share/doc/$APP_INTERNAL_NAME/"
 
- # ---------------- macOS PKG INSTALLER ----------------
- - name: Build macOS pkg
-   if: runner.os == 'macOS'
-   shell: bash
-   run: |
-     mkdir -p pkgroot/Applications/A\ Tarot\ For\ The\ Modern\ Age
-     cp "dist/${APP_NAME}" "pkgroot/Applications/A Tarot For The Modern Age/${APP_NAME}"
-     cp deck_data.json "pkgroot/Applications/A Tarot For The Modern Age/deck_data.json"
-     cp LICENSE.txt EULA.txt README_DIST.txt "pkgroot/Applications/A Tarot For The Modern Age/"
-     pkgbuild \
-       --root pkgroot \
-       --identifier com.ryomodular.tarot.pkg \
-       --version "${APP_VERSION}" \
-       --install-location / \
-       tarot.pkg
-     mkdir -p resources
-     cp EULA.txt resources/EULA.txt
-     productbuild \
-       --distribution installers/macos/distribution.xml \
-       --resources resources \
-       --package-path . \
-       "TarotInstaller-macOS-${APP_VERSION}.pkg"
+          chmod 755 "pkgroot/usr/local/bin/$APP_INTERNAL_NAME"
+
+          fpm -s dir -t deb \
+            -n "$APP_INTERNAL_NAME" \
+            -v "$APP_VERSION" \
+            --license "Personal-Use" \
+            --maintainer "whisprer" \
+            --description "Alchemical Tarot of the Human Condition" \
+            -C pkgroot .
+
+          fpm -s dir -t rpm \
+            -n "$APP_INTERNAL_NAME" \
+            -v "$APP_VERSION" \
+            --license "Personal-Use" \
+            --maintainer "whisprer" \
+            --description "Alchemical Tarot of the Human Condition" \
+            -C pkgroot .
+
+      - name: Upload Linux packages
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Alchemical-Tarot-Linux-${{ env.APP_VERSION }}
+          path: |
+            *.deb
+            *.rpm
+          if-no-files-found: error
