@@ -66,29 +66,36 @@ jobs:
             --add-data "deck_data.json:."
 
       # ---------------- WINDOWS INSTALLER (Inno Setup) ----------------
-      - name: Build executable (Windows, PyInstaller)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install pyinstaller
+# Build exe + prepare payload (Windows)
+- name: Build executable and stage Inno payload (Windows)
+  if: runner.os == 'Windows'
+  shell: pwsh
+  run: |
+    python -m pip install --upgrade pip
+    python -m pip install pyinstaller
 
-          # Clean any previous outputs
-          if (Test-Path build) { Remove-Item -Recurse -Force build }
-          if (Test-Path dist) { Remove-Item -Recurse -Force dist }
-          if (Test-Path installers\windows\payload) { Remove-Item -Recurse -Force installers\windows\payload }
+    # Clean any previous outputs
+    if (Test-Path build) { Remove-Item -Recurse -Force build }
+    if (Test-Path dist) { Remove-Item -Recurse -Force dist }
+    if (Test-Path installers\windows\payload) { Remove-Item -Recurse -Force installers\windows\payload }
 
-          # Build .exe
-          python -m PyInstaller pull_cards.py `
-            --name "a-tarot-for-the-modern-age" `
-            --onefile `
-            --clean `
-            --noconfirm `
-            --add-data "deck_data.json;."
+    # Build .exe
+    python -m PyInstaller pull_cards.py `
+      --name "a-tarot-for-the-modern-age" `
+      --onefile `
+      --clean `
+      --noconfirm `
+      --add-data "deck_data.json;."
 
-          # Copy exe + docs into a *known* payload folder for Inno
-          New-Item -ItemType Directory -Force -Path installers\windows\payload | Out-Null
+    # Copy exe + docs into known payload folder for Inno
+    New-Item -ItemType Directory -Force -Path installers\windows\payload | Out-Null
+    Copy-Item "dist\a-tarot-for-the-modern-age.exe" "installers\windows\payload\" -Force
+    Copy-Item "deck_data.json" "installers\windows\payload\" -Force
+    Copy-Item "LICENSE.txt" "installers\windows\payload\" -Force
+    Copy-Item "EULA.txt" "installers\windows\payload\" -Force
+    Copy-Item "README_DIST.txt" "installers\windows\payload\" -Force
 
+<<<<<<< Updated upstream
           - name: Upload Windows installer artifact
            if: runner.os == 'Windows'
             uses: actions/upload-artifact@v4
@@ -96,102 +103,68 @@ jobs:
               name: TarotSetup-Windows-${{ env.APP_VERSION }}
               path: installers/windows/out/*.exe
               if-no-files-found: error
+=======
+    Write-Host "== payload contents =="
+    Get-ChildItem installers\windows\payload -Force
+>>>>>>> Stashed changes
 
-          Copy-Item "dist\a-tarot-for-the-modern-age.exe" "installers\windows\payload\" -Force
-          Copy-Item "deck_data.json" "installers\windows\payload\" -Force
-          Copy-Item "LICENSE.txt" "installers\windows\payload\" -Force
-          Copy-Item "EULA.txt" "installers\windows\payload\" -Force
-          Copy-Item "README_DIST.txt" "installers\windows\payload\" -Force
+    if (!(Test-Path "installers\windows\payload\a-tarot-for-the-modern-age.exe")) {
+      Write-Error "Exe missing from installers\windows\payload\"
+    }
 
-          # Prove payload exists (and fail loudly if not)
-          Write-Host "== payload contents =="
-          Get-ChildItem installers\windows\payload -Force
-          if (!(Test-Path "installers\windows\payload\a-tarot-for-the-modern-age.exe")) {
-            Write-Error "Exe missing from installers\windows\payload\"
-          }
+# Install Inno Setup
+- name: Install Inno Setup (Windows)
+  if: runner.os == 'Windows'
+  shell: pwsh
+  run: |
+    choco install innosetup -y
 
-      # ---------------- macOS PKG INSTALLER ----------------
-      - name: Build macOS pkg
-        if: runner.os == 'macOS'
-        shell: bash
-        run: |
-          mkdir -p pkgroot/Applications/A\ Tarot\ For\ The\ Modern\ Age
-          cp "dist/${APP_NAME}" "pkgroot/Applications/A Tarot For The Modern Age/${APP_NAME}"
-          cp deck_data.json "pkgroot/Applications/A Tarot For The Modern Age/deck_data.json"
-          cp LICENSE.txt EULA.txt README_DIST.txt "pkgroot/Applications/A Tarot For The Modern Age/"
+# Compile installer
+- name: Build Windows installer (Inno Setup)
+  if: runner.os == 'Windows'
+  shell: pwsh
+  run: |
+    # This produces installers/windows/out/*.exe (because OutputDir=out in the .iss)
+    & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "installers\windows\installer.iss"
 
-          pkgbuild \
-            --root pkgroot \
-            --identifier com.ryomodular.tarot.pkg \
-            --version "${APP_VERSION}" \
-            --install-location / \
-            tarot.pkg
+# Prove output exists (optional but very helpful)
+- name: List Windows installer output
+  if: runner.os == 'Windows'
+  shell: pwsh
+  run: |
+    Write-Host "== installers/windows/out =="
+    if (Test-Path "installers\windows\out") { Get-ChildItem "installers\windows\out" -Force }
+    else { Write-Error "installers/windows/out does not exist" }
 
-          mkdir -p resources
-          cp EULA.txt resources/EULA.txt
+# Upload artifact (THIS MUST BE OUTSIDE pwsh run blocks)
+- name: Upload Windows installer artifact
+  if: runner.os == 'Windows'
+  uses: actions/upload-artifact@v4
+  with:
+    name: TarotSetup-Windows-${{ env.APP_VERSION }}
+    path: installers/windows/out/*.exe
+    if-no-files-found: error
 
-          productbuild \
-            --distribution installers/macos/distribution.xml \
-            --resources resources \
-            --package-path . \
-            "TarotInstaller-macOS-${APP_VERSION}.pkg"
 
-      - name: Upload macOS pkg artifact
-        if: runner.os == 'macOS'
-        uses: actions/upload-artifact@v4
-        with:
-          name: TarotInstaller-macOS-${{ env.APP_VERSION }}
-          path: TarotInstaller-macOS-*.pkg
-          if-no-files-found: error
-
-      # ---------------- LINUX DEB + RPM ----------------
-      - name: Install fpm (Linux)
-        if: runner.os == 'Linux'
-        shell: bash
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ruby ruby-dev build-essential rpm
-          sudo gem install --no-document fpm
-
-      - name: Build DEB and RPM (Linux)
-        if: runner.os == 'Linux'
-        shell: bash
-        run: |
-          mkdir -p pkgroot/usr/local/bin
-          mkdir -p pkgroot/usr/share/doc/a-tarot-for-the-modern-age
-
-          cp "dist/${APP_NAME}" "pkgroot/usr/local/bin/${APP_NAME}"
-          cp LICENSE.txt EULA.txt README_DIST.txt "pkgroot/usr/share/doc/a-tarot-for-the-modern-age/"
-
-          chmod 755 "pkgroot/usr/local/bin/${APP_NAME}"
-          chmod 755 installers/linux/postinstall.sh installers/linux/prerm.sh
-
-          fpm -s dir -t deb \
-            -n a-tarot-for-the-modern-age \
-            -v "${APP_VERSION}" \
-            --license "Proprietary" \
-            --maintainer "RYOModular" \
-            --description "A Tarot For The Modern Age (desktop executable)" \
-            --after-install installers/linux/postinstall.sh \
-            --before-remove installers/linux/prerm.sh \
-            -C pkgroot .
-
-          fpm -s dir -t rpm \
-            -n a-tarot-for-the-modern-age \
-            -v "${APP_VERSION}" \
-            --license "Proprietary" \
-            --maintainer "RYOModular" \
-            --description "A Tarot For The Modern Age (desktop executable)" \
-            --after-install installers/linux/postinstall.sh \
-            --before-remove installers/linux/prerm.sh \
-            -C pkgroot .
-
-      - name: Upload Linux package artifacts
-        if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v4
-        with:
-          name: TarotPackages-Linux-${{ env.APP_VERSION }}
-          path: |
-            *.deb
-            *.rpm
-          if-no-files-found: error
+ # ---------------- macOS PKG INSTALLER ----------------
+ - name: Build macOS pkg
+   if: runner.os == 'macOS'
+   shell: bash
+   run: |
+     mkdir -p pkgroot/Applications/A\ Tarot\ For\ The\ Modern\ Age
+     cp "dist/${APP_NAME}" "pkgroot/Applications/A Tarot For The Modern Age/${APP_NAME}"
+     cp deck_data.json "pkgroot/Applications/A Tarot For The Modern Age/deck_data.json"
+     cp LICENSE.txt EULA.txt README_DIST.txt "pkgroot/Applications/A Tarot For The Modern Age/"
+     pkgbuild \
+       --root pkgroot \
+       --identifier com.ryomodular.tarot.pkg \
+       --version "${APP_VERSION}" \
+       --install-location / \
+       tarot.pkg
+     mkdir -p resources
+     cp EULA.txt resources/EULA.txt
+     productbuild \
+       --distribution installers/macos/distribution.xml \
+       --resources resources \
+       --package-path . \
+       "TarotInstaller-macOS-${APP_VERSION}.pkg"
