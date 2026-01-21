@@ -1,5 +1,5 @@
 #define MyAppName "Alchemical Tarot of the Human Condition"
-#define MyAppExeName "Alchemical-Tarot-of-the-Human-Condition-win71011.exe"
+#define MyAppExeName "bob.exe"
 #define MyAppPublisher "whisprer"
 #define MyAppVersion GetEnv("APP_VERSION")
 
