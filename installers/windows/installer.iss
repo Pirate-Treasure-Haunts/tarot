@@ -1,6 +1,6 @@
 #define Here ExtractFileDir(__FILE__)
 #define MyAppName "Alchemical Tarot of the Human Condition"
-#define MyAppExeName "installers/windows/payload/a-tarot-for-the-modern-age.exe"
+#define MyAppExeName "installers/windows/payload/Alchemical-Tarot-of-the-Human-Condttion.exe"
 #define MyAppPublisher "whisprer"
 #define MyAppVersion GetEnv("APP_VERSION")
 
@@ -32,10 +32,13 @@ Source: "payload\deck_data.json"; DestDir: "{app}"; Flags: ignoreversion
 Source: "payload\README_DIST.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "payload\LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "payload\EULA.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "payload\icon.ico"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
+SetupIconFile=payload\icon.ico
+UninstallDisplayIcon={app}\a-tarot-for-the-modern-age.exe
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: nowait postinstall skipifsilent

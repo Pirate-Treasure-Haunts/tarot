@@ -73,7 +73,9 @@ jobs:
             --clean `
             --noconfirm `
             --add-data "deck_data.json;."
+            --icon "assets\icons\icon.ico"
 
+        Copy-Item "assets\icons\icon.ico" "installers\windows\payload\" -Force
         - name: Build executable and stage payload (Windows)
           if: runner.os == 'Windows'
           shell: pwsh
@@ -87,7 +89,7 @@ jobs:
         
             # Build exe (THIS determines the filename)
             python -m PyInstaller pull_cards.py `
-              --name "a-tarot-for-the-modern-age" `
+              --name "Alchemical-Tarot-of-thre-Human-Condition `
               --onefile `
               --clean `
               --noconfirm `
@@ -96,8 +98,8 @@ jobs:
             Write-Host "== dist listing =="
             Get-ChildItem dist -Force
         
-            if (!(Test-Path "dist\a-tarot-for-the-modern-age.exe")) {
-              Write-Error "PyInstaller did not produce dist\a-tarot-for-the-modern-age.exe"
+            if (!(Test-Path "dist\Alchemical-Tarot-of-the-Human-Condition.exe")) {
+              Write-Error "PyInstaller did not produce dist\Alchemical-Tarot-of-the-Human-Condition.exe"
             }
         
             New-Item -ItemType Directory -Force -Path installers\windows\payload | Out-Null
@@ -111,7 +113,7 @@ jobs:
             Write-Host "== payload listing =="
             Get-ChildItem installers\windows\payload -Force
         
-            if (!(Test-Path "installers\windows\payload\a-tarot-for-the-modern-age.exe")) {
+            if (!(Test-Path "installers\windows\payload\Alchemical-Tarot-of-the-Human-Condition)) {
               Write-Error "EXE missing from payload after copy"
             }
 
@@ -169,11 +171,12 @@ jobs:
           pip install pyinstaller
 
           pyinstaller pull_cards.py \
-            --name "$APP_INTERNAL_NAME" \
-            --onefile \
-            --clean \
-            --noconfirm \
-            --add-data "deck_data.json:."
+             --name "Alchemical Tarot of the Human Condition" \
+             --windowed \
+              --clean \
+              --noconfirm \
+              --add-data "deck_data.json:." \
+              --icon "assets/icons/icon.icns"
 
       - name: Build macOS pkg
         if: runner.os == 'macOS'
@@ -194,6 +197,9 @@ jobs:
 
           mkdir -p resources
           cp EULA.txt resources/EULA.txt
+
+          python -m pip install icnsutil
+          icnsutil create -i assets/icons/icon-1024.png -o assets/icons/icon.icns
 
           productbuild \
             --distribution installers/macos/distribution.xml \
@@ -233,6 +239,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ruby ruby-dev build-essential rpm
           sudo gem install --no-document fpm
+
+        APP_DIR="pkgroot/Applications"
+        mkdir -p "$APP_DIR"
+        cp -R "dist/Alchemical Tarot of the Human Condition.app" "$APP_DIR/"
+
+        mkdir -p pkgroot/usr/share/icons/hicolor/256x256/apps
+        mkdir -p pkgroot/usr/share/applications
+
+        cp assets/icons/icon-1024.png pkgroot/usr/share/icons/hicolor/256x256/apps/a-tarot-for-the-modern-age.png
+        cp installers/linux/a-tarot-for-the-modern-age.desktop pkgroot/usr/share/applications/
 
           mkdir -p pkgroot/usr/local/bin
           mkdir -p pkgroot/usr/share/doc/$APP_INTERNAL_NAME
