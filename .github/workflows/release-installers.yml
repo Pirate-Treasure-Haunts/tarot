@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Release version (e.g. 4.0.1)"
+        description: "Release version (e.g. 4.0.2)"
         required: true
 
 permissions:
@@ -12,194 +12,274 @@ permissions:
 
 jobs:
   build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
 
-runs-on: ${{ matrix.os }}
-
     env:
-      APP_INTERNAL_NAME: Alchemical-Tarot-of-the-Human-Condition
+      APP_INTERNAL_NAME: a-tarot-for-the-modern-age
       APP_VERSION: ${{ github.event.inputs.version }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-    - name: Verify required files exist
-      shell: bash
-      run: |
-        test -f pull_cards.py
-        test -f deck_data.json
-        test -f README_DIST.txt
-        test -f LICENSE.txt
-        test -f EULA.txt
-        test -d installer
-    
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.11
+      - name: Verify required files exist
+        shell: bash
+        run: |
+          set -e
+          test -f pull_cards.py
+          test -f deck_data.json
+          test -f README_DIST.txt
+          test -f LICENSE.txt
+          test -f EULA.txt
+          test -d installers
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
       # ============================================================
-      # WINDOWS: build exe (with icon) -> stage payload -> Inno -> upload
-      # ===========================================================
+      # WINDOWS
+      # ============================================================
 
-  - name: Build executable and stage payload (Windows)
-    if: runner.os == 'Windows'
-    shell: pwsh
-    run: |
-      python -m pip install --upgrade pip
-      python -m pip install pyinstall
-      if (Test-Path build) { Remove-Item -Recurse -Force build }
-      if (Test-Path dist) { Remove-Item -Recurse -Force dist }
-      if (Test-Path installers\windows\payload) { Remove-Item -Recurse -Force installers\windows\payload
-      python -m PyInstaller pull_cards.py `
-        --name "$env:APP_INTERNAL_NAME" `
-        --onefile `
-        --clean `
-        --noconfirm `
-        --add-data "deck_data.json;." `
-        --icon "assets\icons\icon.ic
-      if (!(Test-Path "dist\$env:APP_INTERNAL_NAME.exe")) {
-        Write-Error "Missing dist\$env:APP_INTERNAL_NAME.exe"
-      New-Item -ItemType Directory -Force -Path installers\windows\payload | Out-Null
-      Copy-Item "dist\$env:APP_INTERNAL_NAME.exe" "installers\windows\payload\" -Force
-      Copy-Item "deck_data.json" "installers\windows\payload\" -Force
-      Copy-Item "README_DIST.txt" "installers\windows\payload\" -Force
-      Copy-Item "LICENSE.txt" "installers\windows\payload\" -Force
-      Copy-Item "EULA.txt" "installers\windows\payload\" -Force
-      Copy-Item "assets\icons\icon.ico" "installers\windows\payload\" -For
-      Write-Host "== payload =="
-      Get-ChildItem installers\windows\payload -Force
-    # ============================================================
-    # macOS: CLI binary -> pkg -> upload
-    # NOTE: CLI binaries do not meaningfully carry icons on macOS.
-    # ============================================================
-    - name: Build macOS executable (CLI)
-      if: runner.os == 'macOS'
-      shell: bash
-      run: |
-        set -euo pipefail
-        python -m pip install --upgrade pip
-        pip install pyinstaller
-        rm -rf build dist
-        pyinstaller pull_cards.py \
-          --name "$APP_INTERNAL_NAME" \
-          --onefile \
-          --clean \
-          --noconfirm \
-          --add-data "deck_data.json:."
-        ls -la dist
-        test -f "dist/$APP_INTERNAL_NAME"
-    - name: Build macOS pkg
-      if: runner.os == 'macOS'
-      shell: bash
-      run: |
-        set -euo pipefail
-        APP_DIR="pkgroot/Applications/Alchemical Tarot of the Human Condition"
-        mkdir -p "$APP_DIR"
-        cp "dist/$APP_INTERNAL_NAME" "$APP_DIR/$APP_INTERNAL_NAME"
-        cp deck_data.json README_DIST.txt LICENSE.txt EULA.txt "$APP_DIR/"
-        pkgbuild \
-          --root pkgroot \
-          --identifier com.whisprer.alchemicaltarot \
-          --version "$APP_VERSION" \
-          --install-location / \
-          tarot.pkg
-        mkdir -p resources
-        cp EULA.txt resources/EULA.txt
-        productbuild \
-          --distribution installers/macos/distribution.xml \
-          --resources resources \
-          --package-path . \
-          "Alchemical-Tarot-macOS-$APP_VERSION.pkg"
-        ls -la "Alchemical-Tarot-macOS-$APP_VERSION.pkg"
-    - name: Upload macOS installer
-      if: runner.os == 'macOS'
-      uses: actions/upload-artifact@v4
-      with:
-        name: Alchemical-Tarot-macOS-${{ env.APP_VERSION }}
-        path: Alchemical-Tarot-macOS-*.pkg
-        if-no-files-found: error
-    # ============================================================
-    # LINUX: CLI binary -> deb/rpm + desktop launcher + icon -> upload
-    # ============================================================
-    - name: Verify Linux icon source exists
-      if: runner.os == 'Linux'
-      shell: bash
-      run: |
-        test -f assets/icons/icon-1024.png
-    - name: Build Linux executable (CLI)
-      if: runner.os == 'Linux'
-      shell: bash
-      run: |
-        set -euo pipefail
-        python -m pip install --upgrade pip
-        pip install pyinstaller
-        rm -rf build dist
-        pyinstaller pull_cards.py \
-          --name "$APP_INTERNAL_NAME" \
-          --onefile \
-          --clean \
-          --noconfirm \
-          --add-data "deck_data.json:."
-        ls -la dist
-        test -f "dist/$APP_INTERNAL_NAME"
-    - name: Build Linux packages (.deb + .rpm) with icon + launcher
-      if: runner.os == 'Linux'
-      shell: bash
-      run: |
-        set -euo pipefail
-        sudo apt-get update
-        sudo apt-get install -y ruby ruby-dev build-essential rpm
-        sudo gem install --no-document fpm
-        rm -rf pkgroot
-        mkdir -p pkgroot/usr/local/bin
-        mkdir -p pkgroot/usr/share/doc/$APP_INTERNAL_NAME
-        mkdir -p pkgroot/usr/share/icons/hicolor/256x256/apps
-        mkdir -p pkgroot/usr/share/applications
-        # Install binary
-        cp "dist/$APP_INTERNAL_NAME" "pkgroot/usr/local/bin/$APP_INTERNAL_NAME"
-        chmod 755 "pkgroot/usr/local/bin/$APP_INTERNAL_NAME"
-        # Docs
-        cp README_DIST.txt LICENSE.txt EULA.txt "pkgroot/usr/share/doc/$APP_INTERNAL_NAME/"
-        # Icon (use 1024 as source; ship as 256 name for desktop environments)
-        cp assets/icons/icon-1024.png "pkgroot/usr/share/icons/hicolor/256x256/apps/$APP_INTERNAL_NAME.png"
-        # Desktop launcher (Terminal=true because this is CLI)
-        cat > "pkgroot/usr/share/applications/$APP_INTERNAL_NAME.desktop" <<'EOF'
-        [Desktop Entry]
-        Type=Application
-        Name=Alchemical Tarot of the Human Condition
-        Comment=CLI tarot tool (opens in Terminal)
-        Exec=/usr/local/bin/a-tarot-for-the-modern-age
-        Icon=a-tarot-for-the-modern-age
-        Terminal=true
-        Categories=Utility;
-        EOF
-        rm -f ./*.deb ./*.rpm
-        # Build packages
-        fpm -s dir -t deb \
-          -n "$APP_INTERNAL_NAME" \
-          -v "$APP_VERSION" \
-          --license "Personal-Use" \
-          --maintainer "whisprer" \
-          --description "Alchemical Tarot of the Human Condition" \
-          -C pkgroot .
-        fpm -s dir -t rpm \
-          -n "$APP_INTERNAL_NAME" \
-          -v "$APP_VERSION" \
-          --license "Personal-Use" \
-          --maintainer "whisprer" \
-          --description "Alchemical Tarot of the Human Condition" \
-          -C pkgroot .
-        ls -la *.deb *.rpm
-    - name: Upload Linux packages
-      if: runner.os == 'Linux'
-      uses: actions/upload-artifact@v4
-      with:
-        name: Alchemical-Tarot-Linux-${{ env.APP_VERSION }}
-        path: |
-          *.deb
-          *.rpm
-        if-no-files-found: error
+      - name: Verify Windows icon exists
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if (!(Test-Path "assets\icons\icon.ico")) {
+            Write-Error "Missing assets\icons\icon.ico (required for Windows exe + installer icon)."
+          }
+
+      - name: Build executable and stage payload (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pyinstaller
+
+          if (Test-Path build) { Remove-Item -Recurse -Force build }
+          if (Test-Path dist) { Remove-Item -Recurse -Force dist }
+          if (Test-Path installers\windows\payload) { Remove-Item -Recurse -Force installers\windows\payload }
+
+          python -m PyInstaller pull_cards.py `
+            --name "$env:APP_INTERNAL_NAME" `
+            --onefile `
+            --clean `
+            --noconfirm `
+            --add-data "deck_data.json;." `
+            --icon "assets\icons\icon.ico"
+
+          Write-Host "== dist listing =="
+          Get-ChildItem dist -Force
+
+          if (!(Test-Path "dist\$env:APP_INTERNAL_NAME.exe")) {
+            Write-Error "Missing dist\$env:APP_INTERNAL_NAME.exe"
+          }
+
+          New-Item -ItemType Directory -Force -Path installers\windows\payload | Out-Null
+
+          Copy-Item "dist\$env:APP_INTERNAL_NAME.exe" "installers\windows\payload\" -Force
+          Copy-Item "deck_data.json" "installers\windows\payload\" -Force
+          Copy-Item "README_DIST.txt" "installers\windows\payload\" -Force
+          Copy-Item "LICENSE.txt" "installers\windows\payload\" -Force
+          Copy-Item "EULA.txt" "installers\windows\payload\" -Force
+          Copy-Item "assets\icons\icon.ico" "installers\windows\payload\" -Force
+
+          Write-Host "== payload listing =="
+          Get-ChildItem installers\windows\payload -Force
+
+          if (!(Test-Path "installers\windows\payload\$env:APP_INTERNAL_NAME.exe")) {
+            Write-Error "EXE missing from installers\windows\payload"
+          }
+
+      - name: Install Inno Setup (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install innosetup -y
+
+      - name: Build Windows installer (Inno Setup)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "installers\windows\installer.iss"
+
+      - name: Upload Windows installer
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Alchemical-Tarot-Windows-${{ env.APP_VERSION }}
+          path: installers/windows/out/*.exe
+          if-no-files-found: error
+
+      # ============================================================
+      # macOS (CLI)
+      # ============================================================
+
+      - name: Build macOS executable (CLI)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+
+          rm -rf build dist
+          pyinstaller pull_cards.py \
+            --name "$APP_INTERNAL_NAME" \
+            --onefile \
+            --clean \
+            --noconfirm \
+            --add-data "deck_data.json:."
+
+          ls -la dist
+          test -f "dist/$APP_INTERNAL_NAME"
+
+      - name: Build macOS pkg
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ ! -f "installers/macos/distribution.xml" ]; then
+            echo "Missing installers/macos/distribution.xml" >&2
+            exit 1
+          fi
+
+          rm -rf pkgroot resources
+          APP_DIR="pkgroot/Applications/Alchemical Tarot of the Human Condition"
+          mkdir -p "$APP_DIR"
+          cp "dist/$APP_INTERNAL_NAME" "$APP_DIR/$APP_INTERNAL_NAME"
+          cp deck_data.json README_DIST.txt LICENSE.txt EULA.txt "$APP_DIR/"
+
+          pkgbuild \
+            --root pkgroot \
+            --identifier com.whisprer.alchemicaltarot \
+            --version "$APP_VERSION" \
+            --install-location / \
+            tarot.pkg
+
+          mkdir -p resources
+          cp EULA.txt resources/EULA.txt
+
+          productbuild \
+            --distribution installers/macos/distribution.xml \
+            --resources resources \
+            --package-path . \
+            "Alchemical-Tarot-macOS-$APP_VERSION.pkg"
+
+          ls -la "Alchemical-Tarot-macOS-$APP_VERSION.pkg"
+
+      - name: Upload macOS installer
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Alchemical-Tarot-macOS-${{ env.APP_VERSION }}
+          path: Alchemical-Tarot-macOS-*.pkg
+          if-no-files-found: error
+
+      # ============================================================
+      # LINUX (CLI + deb/rpm + desktop launcher + icon)
+      # ============================================================
+
+      - name: Build Linux executable (CLI)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+
+          rm -rf build dist
+          pyinstaller pull_cards.py \
+            --name "$APP_INTERNAL_NAME" \
+            --onefile \
+            --clean \
+            --noconfirm \
+            --add-data "deck_data.json:."
+
+          ls -la dist
+          test -f "dist/$APP_INTERNAL_NAME"
+
+      - name: Build Linux packages (.deb + .rpm) with icon + launcher
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          sudo apt-get update
+          sudo apt-get install -y ruby ruby-dev build-essential rpm imagemagick
+          sudo gem install --no-document fpm
+
+          # Ensure we don't trip "file already exists"
+          rm -f ./*.deb ./*.rpm
+
+          # Ensure we have a PNG icon for desktop environments.
+          # Preferred: assets/icons/icon-1024.png
+          # Fallback: derive it from assets/icons/icon.ico if present.
+          if [ ! -f "assets/icons/icon-1024.png" ]; then
+            if [ -f "assets/icons/icon.ico" ]; then
+              mkdir -p assets/icons
+              convert "assets/icons/icon.ico" "assets/icons/icon-1024.png"
+            else
+              echo "Missing assets/icons/icon-1024.png (and no assets/icons/icon.ico fallback)." >&2
+              exit 1
+            fi
+          fi
+
+          rm -rf pkgroot
+          mkdir -p "pkgroot/usr/local/bin"
+          mkdir -p "pkgroot/usr/share/doc/$APP_INTERNAL_NAME"
+          mkdir -p "pkgroot/usr/share/icons/hicolor/256x256/apps"
+          mkdir -p "pkgroot/usr/share/applications"
+
+          cp "dist/$APP_INTERNAL_NAME" "pkgroot/usr/local/bin/$APP_INTERNAL_NAME"
+          chmod 755 "pkgroot/usr/local/bin/$APP_INTERNAL_NAME"
+
+          cp README_DIST.txt LICENSE.txt EULA.txt "pkgroot/usr/share/doc/$APP_INTERNAL_NAME/"
+
+          cp "assets/icons/icon-1024.png" "pkgroot/usr/share/icons/hicolor/256x256/apps/$APP_INTERNAL_NAME.png"
+
+          cat > "pkgroot/usr/share/applications/$APP_INTERNAL_NAME.desktop" <<EOF
+          [Desktop Entry]
+          Type=Application
+          Name=Alchemical Tarot of the Human Condition
+          Comment=CLI tarot tool (opens in Terminal)
+          Exec=/usr/local/bin/$APP_INTERNAL_NAME
+          Icon=$APP_INTERNAL_NAME
+          Terminal=true
+          Categories=Utility;
+          EOF
+
+          fpm -s dir -t deb \
+            -n "$APP_INTERNAL_NAME" \
+            -v "$APP_VERSION" \
+            --license "Personal-Use" \
+            --maintainer "whisprer" \
+            --description "Alchemical Tarot of the Human Condition" \
+            -C pkgroot .
+
+          fpm -s dir -t rpm \
+            -n "$APP_INTERNAL_NAME" \
+            -v "$APP_VERSION" \
+            --license "Personal-Use" \
+            --maintainer "whisprer" \
+            --description "Alchemical Tarot of the Human Condition" \
+            -C pkgroot .
+
+          ls -la *.deb *.rpm
+
+      - name: Upload Linux packages
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Alchemical-Tarot-Linux-${{ env.APP_VERSION }}
+          path: |
+            *.deb
+            *.rpm
+          if-no-files-found: error
