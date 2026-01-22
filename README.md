@@ -1,5 +1,9 @@
 [README.md]
 
+This hereby records that in this repo working on this very project for the first time i successfully made a crossplatform self deploying set ofi nstallers that require agreeing to legaal terms before they'll install as per a million MS games gone before and so i join the leagues of app developers who actually will never earn money off being able and having gone through comple pipline development emplying full stack retc.
+
+[![Build Installers (Windows / macOS / Linux)](https://github.com/Pirate-Treasure-Haunts/tarot/actions/workflows/release-installers.yml/badge.svg?branch=main&event=milestone)](https://github.com/Pirate-Treasure-Haunts/tarot/actions/workflows/release-installers.yml)
+
 # A-Tarot-For-The-Modern-Age
 
 <p align="center">
