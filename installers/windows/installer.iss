@@ -1,25 +1,29 @@
-#define Here ExtractFileDir(__FILE__)
-#define MyAppName "Alchemical Tarot of the Human Condition"
-#define MyAppExeName "installers/windows/payload/Alchemical-Tarot-of-the-Human-Condttion.exe"
+##define MyAppName "Alchemical Tarot of the Human Condition"
+#define MyAppExeName "a-tarot-for-the-modern-age.exe"
 #define MyAppPublisher "whisprer"
+#define MyAppURL "https://github.com/whisprer/tarot"
 #define MyAppVersion GetEnv("APP_VERSION")
 
 [Setup]
-AppId={{A0D7C3E4-7C1A-4B4A-BD9C-5F1A2D0F9A11}
+AppId={{E9A6B2D9-3E18-4D6D-8C7B-8F3D1E8B7A11}}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-DefaultDirName={pf}\{#MyAppName}
+AppPublisherURL={#MyAppURL}
+AppSupportURL={#MyAppURL}
+AppUpdatesURL={#MyAppURL}
+DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
-DisableProgramGroupPage=yes
-
-; Output is relative to THIS .iss folder => installers/windows/out/
 OutputDir=out
 OutputBaseFilename=Alchemical-Tarot-Setup-{#MyAppVersion}
-Compression=lzma2
+Compression=lzma
 SolidCompression=yes
 
-; Installer UI text screens
+; ---- Icons / branding ----
+SetupIconFile=payload\icon.ico
+UninstallDisplayIcon={app}\{#MyAppExeName}
+
+; ---- EULA / README shown in wizard ----
 LicenseFile=payload\EULA.txt
 InfoBeforeFile=payload\README_DIST.txt
 
@@ -27,7 +31,7 @@ InfoBeforeFile=payload\README_DIST.txt
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: "payload\a-tarot-for-the-modern-age.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "payload\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "payload\deck_data.json"; DestDir: "{app}"; Flags: ignoreversion
 Source: "payload\README_DIST.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "payload\LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
@@ -37,8 +41,6 @@ Source: "payload\icon.ico"; DestDir: "{app}"; Flags: ignoreversion
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
-SetupIconFile=payload\icon.ico
-UninstallDisplayIcon={app}\a-tarot-for-the-modern-age.exe
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Description: "Run {#MyAppName}"; Flags: nowait postinstall skipifsilent
