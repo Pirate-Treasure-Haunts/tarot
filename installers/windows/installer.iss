@@ -1,4 +1,4 @@
-##define MyAppName "Alchemical Tarot of the Human Condition"
+#define MyAppName "Alchemical Tarot of the Human Condition"
 #define MyAppExeName "a-tarot-for-the-modern-age.exe"
 #define MyAppPublisher "whisprer"
 #define MyAppURL "https://github.com/whisprer/tarot"
