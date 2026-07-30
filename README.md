@@ -1,4 +1,33 @@
-[README.md]
+<!-- repo-convergence:readme-header:start -->
+<!-- repo-convergence:language=FILL_ME -->
+# alchemical-tarot-of-the-human-condition
+
+<p align="center">
+  <a href="https://github.com/whisprer/alchemical-tarot-of-the-human-condition/releases">
+    <img src="https://img.shields.io/github/v/release/whisprer/alchemical-tarot-of-the-human-condition?color=4CAF50&label=release" alt="Release Version">
+  </a>
+  <a href="https://github.com/whisprer/alchemical-tarot-of-the-human-condition/blob/main/LICENSE">
+    <img src="https://img.shields.io/badge/license-Hybrid-green.svg" alt="License">
+  </a>
+  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg" alt="Platform">
+  <a href="https://github.com/whisprer/alchemical-tarot-of-the-human-condition/actions/workflows/build-executables.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/whisprer/alchemical-tarot-of-the-human-condition/build-executables.yml?label=build" alt="Build Status">
+  </a>
+</p>
+
+[![GitHub](https://img.shields.io/badge/GitHub-whisprer%2Falchemical-tarot-of-the-human-condition-blue?logo=github&style=flat-square)](https://github.com/whisprer/alchemical-tarot-of-the-human-condition)
+![Commits](https://img.shields.io/github/commit-activity/m/whisprer/alchemical-tarot-of-the-human-condition?label=commits)
+![Last Commit](https://img.shields.io/github/last-commit/whisprer/alchemical-tarot-of-the-human-condition)
+![Issues](https://img.shields.io/github/issues/whisprer/alchemical-tarot-of-the-human-condition)
+[![Version](https://img.shields.io/badge/version-3.1.1-blue.svg)](https://github.com/whisprer/alchemical-tarot-of-the-human-condition)
+[![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-lightgrey.svg)](https://www.microsoft.com/windows)
+[![Language](https://img.shields.io/badge/language-FILL_ME-blue.svg)](#)
+[![Status](https://img.shields.io/badge/Status-Alpha%20Release-orange?style=flat-square)](#)
+
+<p align="center">
+  <img src="/assets/alchemical-tarot-of-the-human-condition-banner.png" width="850" alt="alchemical-tarot-of-the-human-condition Banner">
+</p>
+<!-- repo-convergence:readme-header:end -->
 
 This hereby records that in this repo working on this very project for the first time i successfully made a crossplatform self deploying set ofi nstallers that require agreeing to legaal terms before they'll install as per a million MS games gone before and so i join the leagues of app developers who actually will never earn money off being able and having gone through comple pipline development emplying full stack retc.
 
